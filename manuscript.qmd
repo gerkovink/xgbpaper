@@ -8,19 +8,20 @@ author:
     email: g.vink@uu.nl
     affiliations:
       - name: Utrecht University
-        department: Department of Methods and Statistics
+      - department: Department of Methods and Statistics
 abstract: > 
-  The characteristic theme of the works of Stone is 
-  the bridge between culture and society. ...
+  Tree-based imputation methods, such as Classification and Regression Trees (CART) and Random Forest (RF), have demonstrated improved accuracy in handling missing data, particularly when variables exhibit non-linear relationships. In our study, we developed another such method: XGBoost, implemented as an imputation model within the fully conditional specification framework of the `mice` package. Similar to mixgb, we integrated XGBoost predictions with donor-based matching using the observed data or predicted space of observed data. Our findings underscored that integrating XGBoost with donor-based selection yielded superior performance compared to using XGBoost predictions alone. Furthermore, we incorporated a Bayesian optimization-based parameter tuning function to improve the accuracy This function facilitates tuning parameters either for individual variables or separately for each variable in the dataset.
+  
+  Our comparative analysis indicated that while XGBoost demonstrated comparable performance to existing tree-based imputation methods under scenarios with low levels of missing data, CART and RF exhibited better accuracy and lower bias in scenarios with high levels of missing data. Moreover, XGBoost offers a diverse array of parameters, and optimizing these parameters is highly dataset-specific. Further research is necessary to ascertain whether specific parameter configurations can improve performance in contexts with high levels of missing data.
 keywords:
   - XGboost
   - Multiple Imputation
   - mice
 license: "CC BY"
 bibliography: bibliography.bib
-editor_options: 
-  markdown: 
-    wrap: 72
+toc: true
+toc_depth: 3
+page-layout: article
 ---
 
 ```{r setup, include=FALSE}
@@ -33,36 +34,12 @@ library(dplyr)
 library(kableExtra)
 library(flextable)
 library(officer)
-
 ```
 
-## Abstract
+##### Funding
+This work has been funded by the Netherlands Organization for Scientific Research (NWO) under grant number 406.XS.01.104.
 
-Tree-based imputation methods, such as Classification and Regression
-Trees (CART) and Random Forest (RF), have demonstrated improved accuracy
-in handling missing data, particularly when variables exhibit non-linear
-relationships. In our study, we developed another such method: XGBoost,
-implemented as an imputation model within the fully conditional
-specification framework of the mice package. Similar to mixgb, we
-integrated XGBoost predictions with donor-based matching using the
-observed data or predicted space of observed data. Our findings
-underscored that integrating XGBoost with donor-based selection yielded
-superior performance compared to using XGBoost predictions alone.
-Furthermore, we incorporated a Bayesian optimization-based parameter
-tuning function to improve the accuracy This function facilitates tuning
-parameters either for individual variables or separately for each
-variable in the dataset.
-
-Our comparative analysis indicated that while XGBoost demonstrated
-comparable performance to existing tree-based imputation methods under
-scenarios with low levels of missing data, CART and RF exhibited better
-accuracy and lower bias in scenarios with high levels of missing data.
-Moreover, XGBoost offers a diverse array of parameters, and optimizing
-these parameters is highly dataset-specific. Further research is
-necessary to ascertain whether specific parameter configurations can
-improve performance in contexts with high levels of missing data.
-
-## Introduction
+# Introduction
 
 Missing data is a prevalent issue across various fields and can
 potentially introduce bias into statistical analyses. To address this
@@ -83,7 +60,7 @@ directly utilized in subsequent statistical analyses to derive
 parameters of scientific interest. Ultimately, estimates from all
 datasets are pooled into a single inference using Rubin's rule, which
 integrates uncertainty among different imputed
-datasets[@UnderlyingBayesianTheory1987][@obermanStandardizedEvaluationImputation2024].
+datasets[@Rubin1987; @obermanStandardizedEvaluationImputation2024].
 The multiple imputation strategy has gained widespread acceptance due to
 its ability to restore natural variability and incorporate inherent
 uncertainty originating from missing data. By integrating information
@@ -110,12 +87,12 @@ variable and the selection of an appropriate imputation model capable of
 capturing these properties. Moreover, Meng (1994) emphasized the
 importance of the imputation model being congenial to the downstream
 analysis model, highlighting the need for effective alignment between
-the two @Rubin_1994. Often, data analysis models include relationships
+the two [@Rubin_1994]. Often, data analysis models include relationships
 between different variables in the dataset. To ensure seamless
 integration between these steps, the imputation model should not only be
 selected according to each variable type but must also be able to
 capture the complex relationships among different variables in the data.
-However, available software packages such as mi and mice may not
+However, available software packages such as mi and `mice` may not
 adequately capture these complex relationships by default. Therefore, it
 is crucial to manually specify all interactions between variable in
 order to obtain statistically valid imputed datasets.
@@ -128,7 +105,7 @@ traditional imputation methods often struggle to capture non-linear
 relationships between variables, presenting a significant challenge .
 Tree-based methods have emerged as a solution to this issue. The initial
 integration of random forest-based imputation models into packages like
-missForest and mice (mice-rf and mice-CART) has demonstrated their
+missForest and `mice` (`mice-RF` and `mice-CART`) has demonstrated their
 effectiveness in preserving complex relationships between variables
 compared to standard methods
 [@stekhovenMissForestNonparametricMissing2012]. Another notable
@@ -142,7 +119,7 @@ variables.
 
 The aim of this study is two fold. First, we introduce an imputation
 methodology based on the XGBoost algorithm, readily available in the
-mice package. Hyperparameter selection significantly impacts machine
+`mice` package. Hyperparameter selection significantly impacts machine
 learning algorithm performance. We offer users flexible options to tune
 these hyperparameters: 1) tuning parameters on a single variable of
 interest and applying them to impute all variables in the dataset, 2)
@@ -156,21 +133,21 @@ performance of traditional models (predictive mean matching, random
 forest, classification and regression tree) and previously proposed
 XGBoost implementation (mixgb) package
 [@dengMultipleImputationXGBoost2023] with our newly developed
-mice-xgboost method. Our results show that mice-xgboost perform
+`mice-xgb`oost method. Our results show that `mice-xgb`oost perform
 significantly better than all other methods specifically to capture
 quadratic relationship and interaction between variables.
 
-## Implementing XGBoost in fully conditional specification framework
+# Implementing XGBoost in a fully conditional specification framework
 
-Recently, MixGB package has extended the application of XGBoost beyond
+Recently, the `mixgb` package has extended the application of XGBoost beyond
 prediction, employing it as a strategy for missing data imputation.
-MixGB package integrates the uncertainty and variability inherent in
-missing data by introducing two features. First, MixGB introduces a
+The `mixgb` package integrates the uncertainty and variability inherent in
+missing data by introducing two features. First, `mixgb` introduces a
 fusion of XGBoost with predictive mean matching (PMM) approach. PMM
 addresses the underestimation by finding donors of predicted values from
-observed data in a predicted space. Secondly, the MixGB package takes
+observed data in a predicted space. Secondly, the `mixgb` package takes
 the benefit of sub-sampling parameter for training the XGBoost model.
-Moreover, MixGB is built on a non-iterative imputation framework while
+Moreover, `mixgb` is built on a non-iterative imputation framework while
 also allowing users to perform multiple iterations if needed. The MixGB
 workflow includes 1) sorting variables based on the missing proportion
 in each variable, 2) performing initial imputation (e.g., using mean,
@@ -182,12 +159,12 @@ approach effectively accounts for the variability of missing data and
 improves imputation performance compared to existing methods
 [@dengMultipleImputationXGBoost2023].
 
-Mice is an extensible package which is evident by subsequent addition of
+`mice` is an extensible package which is evident by subsequent addition of
 multiple tree-based imputation algorithms such as CART and Random
 Forest. This study extends the mission of integrating machine learning
 techniques with missing data imputation by specifically implementing
-XGBoost into the foundational framework of the mice package. Similar to
-mixgb package, we have combined XGBoost predictions with donor-based
+XGBoost into the foundational framework of the `mice` package. Similar to
+the `mixgb` package, we have combined XGBoost predictions with donor-based
 selection (referred to as PMM in mixgb) to impute missing data. To
 accomplish this, one of the three "match.types" can be provided as an
 input option in mice.impute.xgb function: "predicted,"
@@ -215,7 +192,7 @@ input option in mice.impute.xgb function: "predicted,"
         data, rather than the prediction space of observed data in order
         to select donors. This approach differs from pmm = 1 in mixgb.
 
-Another notable feature of mice-xgb is its customizability in handling
+Another notable feature of `mice-xgb` is its customizability in handling
 hyperparameters for the XGBoost model. User can opt to run imputation
 task with default parameters or input preferred parameters based on
 prior experience / literature search. Moreover, if user wants to
@@ -228,7 +205,7 @@ variables are iteratively imputed in a cyclic manner thus each variable
 act as a target variable, making it a multi-task problem. Therefore,
 users must decide whether to use the same set of parameters for all the
 imputation tasks or to specify separate set of hyperparameters for each
-target variable. Mice XGboost provides both such options. User have the
+target variable. `mice` XGboost provides both such options. User have the
 flexibility to first tune a uniform set of parameters for imputing all
 variables or separate set of hyperparameters specific to each variable
 and in the next step, provide these parameters to XGBoost imputation
@@ -245,8 +222,6 @@ obtain separate parameter values for all variables. Third approach is
 useful for handling complex relationships within the data, though it is
 more time-consuming.
 
-# Table 1: Available hyperpparameters in xgb_param_calc
-
 | Parameter           | Range      |
 |---------------------|------------|
 | Learning Rate - Eta | 0 - 0.3    |
@@ -259,7 +234,9 @@ more time-consuming.
 | alpha               | 1e-09, 100 |
 | lambda              | 1e-09, 100 |
 
-The basic work-flow of mice package includes three steps:
+: Table 1: Available hyperparameters in the `mice::xgb_param_calc()` function
+
+The basic work-flow of the `mice` package includes three steps:
 initialization, iterative imputation and pooling. For a dataset Y with p
 incomplete variables Y = (Y1, Y2, .... , Y$_p$), Y$_j$ denote one of the
 incomplete variable with j = 1,2,3,....p. Variable Y$_j$ is split in
@@ -267,17 +244,17 @@ observed (Y$_j^{obs}$) and missing part (Y$_j^{mis}$). Initialization
 process begins by replacing missing values Y$_j^{mis}$ with plausible
 estimates. These initial values are randomly drawn from a distribution
 specifically modeled for missing data in each variable Y$_j$. By
-default, mice initiates five imputed datasets (m\>1). The hth imputed
+default, `mice`initiates five imputed datasets (m\>1). The hth imputed
 data sets is referred as Y$^(h)$ where h = 1, . . . , m. These imputed
 datasets are identical for observed data but differ in their imputed
 values. The variability among these imputations reflects the uncertainty
 associated with the plausible values of the missing data. In contrast,
-the initialization in mixgb generates identical initial complete
-datasets. However, mixgb utilizes the subsampling hyperparameter of the
+the initialization in `mixgb`  generates identical initial complete
+datasets. However, `mixgb`  utilizes the subsampling hyperparameter of the
 xgboost algorithm to incorporate uncertainty. Thus for each imputation,
 a different subset of data is used for imputation resulting in different
 predicted values, reflecting variability between imputations. However,
-the use of the subsampling parameter in mice-xgboost is optional. User
+the use of the subsampling parameter in `mice-xgb`oost is optional. User
 may or may not tune the subsampling parameter along with other
 parameters depending on the dataset and the subsequent statistical
 question.
@@ -285,11 +262,11 @@ question.
 The next step, iterative imputation is now easy as all datasets are
 complete. Any statistical model can be employed, as it would be in
 standard statistical analysis outside the context of missing data. By
-default, mice use five iterations thus iterative imputation starts with
+default, `mice`use five iterations thus iterative imputation starts with
 5 datasets Y$^m$ where m = 1,2,...5. For each imputation, one iteration
 involves cycling through all variables (j = 1,...., p) to replace
 placeholder missing values with estimates (Q) obtained from the
-imputation model. In mice-xgb, these estimates are the predictions from
+imputation model. In `mice-xgb`, these estimates are the predictions from
 the XGBoost model. For each variable (Y$_j$), xgboost model is trained
 on the subset of data where target variable (Y$_j$) is observed. These
 observed values of Y$_j$ act as a label (Y$_j^{obs}$) and all other
@@ -308,7 +285,7 @@ for all 5 imputations to get 5 different datasets Y$^(1,2,...,5)$. This
 iterative process ensures that the imputed values are progressively
 refined. However, user can choose to run only one iteration. The final
 step in the imputation process is pooling the estimates from different
-imputations. The *pool* function in mice is implemented using Rubin's
+imputations. The *pool* function in `mice`is implemented using Rubin's
 rules [@rubinInferenceMissingData1976] to facilitate pooling process.
 
 Deng et al. highlighted that directly predicting missing values using
@@ -319,31 +296,31 @@ inspired donor-based selection. PMM matches each missing value's
 predicted value with closely matched observed values from the same
 variable (Yj), referred to as candidate donors. One donor is then
 randomly selected to impute the missing value. In the default settings
-of mice-xgb, missing values are replaced with direct predictions from
+of `mice-xgb`, missing values are replaced with direct predictions from
 the XGBoost model, represented as $\hat{Y}_j^{mis}$ (match.type =
 "predicted"). However, if the user opts for alternative match.types such
 as "predicted.observed" or "original.observed," the algorithm performs
 donor-based matching using the predicted values $\hat{Y}_j^{mis}$ as the
 recipient space. With "predicted.observed" match.type, donors are chosen
 from the predictions of the trained model on the observed data
-$\hat{Y}_j^{obs}$, analogous to pmm=2 in mixgb (without subsampling).
+$\hat{Y}_j^{obs}$, analogous to pmm=2 in `mixgb`  (without subsampling).
 For "original.observed" match.type, the donor set is obtained by
 matching the predicted values $\hat{Y}_j^{mis}$ to the original observed
-data Y$_j^{obs}$. Unlike mixgb, there is no equivalent option for pmm=1
-in mice. The main distinction between mixgb's pmm=1 and pmm=2 lies in
+data Y$_j^{obs}$. Unlike `mixgb` , there is no equivalent option for pmm=1
+in mice. The main distinction between `mixgb`'s pmm=1 and pmm=2 lies in
 the source of $\hat{Y}_j^{obs}$: pmm=2 uses a subsample of the dataset,
 while pmm=1 trains on the complete dataset. However, with no subsampling
-and a single iteration, mixgb's pmm=1 and pmm=2 yield the same donor
-space. Since mice-xgb's default setting employs the complete dataset for
+and a single iteration, `mixgb` 's pmm=1 and pmm=2 yield the same donor
+space. Since `mice-xgb`'s default setting employs the complete dataset for
 training and prediction, a separate method for pmm=1 is unnecessary.
 
-## Algorithm I: Mice-xgb
+# Algorithm I: `mice-xgb`
 
-*Missing data imputation using mice-xgb with default parameters*
+*Missing data imputation using `mice-xgb` with default parameters*
 
-### Input
+## Input
 
-Input of mice for xgboost algorithm consist of following options.
+Input of `mice`for xgboost algorithm consist of following options.
 
 -   A dataset is represented by Y$_{raw}$ with j=1,2,... p variables.
 
@@ -360,9 +337,9 @@ Input of mice for xgboost algorithm consist of following options.
     (described in table 1); a list of list with variable names and set
     of parameter for each variable
 
-### Initialization
+## Initialization
 
-The basic workflow of mice starts with identifying missing values in the
+The basic workflow of `mice`starts with identifying missing values in the
 data Y and storing their location in w matrix. For each variable,
 missing values in Y$_{raw}$ is replaced by placeholder values obtained
 from distribution of each variable
@@ -371,7 +348,7 @@ For $m = 1:5$:
 
 $$ Y_{w,j}^m \leftarrow Y_{init} $$
 
-### Iteration and Imputation process
+## Iteration and Imputation process
 
 For m = 1:5
 
@@ -420,16 +397,16 @@ $$
   Y_{\text{j}}^{\text{mis[m]}} = \text{ Donor value by matching } \hat{Y}_{\text{j}}^{mis}  \text{ with } \text{Y}_{j}^{\text{obs}}
   $$
 
-### Output
+## Output
 
 Imputed datasets Y$^{imp}$ where $\text{imp} = \{1, \ldots, m\}$
 
-## Algorithm II: XGBoost hyperparameter tuning using bayesian optimization
+# Algorithm II: XGBoost hyperparameter tuning using bayesian optimization
 
-In mice package, hyperparameter tuning can be performed using
+In `mice` package, hyperparameter tuning can be performed using
 xgb_param_calc function
 
-### Input
+## Input
 
 -   A dataset (Y$_{raw}$) with $\text{j} = \{1, \ldots, p\}$ variables
 
@@ -459,7 +436,7 @@ $$
 p_{\text{t}} = \{ p_{\text{t1}}, p_{\text{t2}}, \ldots, p_{\text{tN}} \} 
 $$
 
-### Training features and label variable selection
+## Training features and label variable selection
 
 Y$_\text{raw}$ \<- complete cases of Y$_\text{raw}$
 
@@ -517,7 +494,7 @@ $$
 Y_{-r} \leftarrow Y_{-j} \text{ represents data of all variables except } Y_j
 $$
 
-#### Define parameter space
+### Define parameter space
 
 The list of parameters available in the tuning function are listed in
 Table 1.
@@ -533,12 +510,12 @@ $$
 \text{P}_q \leftarrow \{ p_1, p_2, \ldots, p_N \} \subseteq \text{P}
 $$
 
-#### Initial Points Selection:
+### Initial Points Selection:
 
 Randomly select 𝑛× 5 initial points for evaluation where $n$ represents
 the number of tuning parameters $\text{P}_q$
 
-#### K-fold Cross Validation function
+### K-fold Cross Validation function
 
 Define K-fold cross-validation based objective function as follow
 
@@ -552,7 +529,7 @@ where each $(Y_{-r}^{(k)}, Y_r^{(k)})$ for $k = 1, 2, \ldots, K$
 represents a fold with $Y_{-r}^{(k)}$ as the training data and
 $Y_r^{(k)}$ as the label.
 
-### Bayesian Optimization
+## Bayesian Optimization
 
 1.  **Initialization:** Evaluate the objective function $f(\mathbf{x})$
     for generated (n\*5) initial points
@@ -574,14 +551,14 @@ $Y_r^{(k)}$ as the label.
 6.  **Iteration:** Repeat step 3-5 until algorithm converges or maximum
     number of iteration has reached.
 
-### Output
+## Output
 
 Hyperparameter values that returned minimum value of loss function (Mean
 Absolute Percentage Error).
 
-## Simulation study
+# Simulation study
 
-### Aim
+## Aim
 
 The aim of this simulation study is to assess the efficacy of XBGoost in
 imputing missing data, particularly for capturing non-linear
@@ -600,7 +577,7 @@ questions:
 -   Are there any differences in simulation time of the XGBoost model
     compare to that of state-of-the-art models?
 
-### Data generation
+## Data generation
 
 In order to answer the above mentioned questions, we generated dataset
 of sample size (n = 1000) with two continuously predictor variable (X
@@ -633,31 +610,31 @@ a comparative simulation study. However, a subset of 10 datasets from
 the 20% and 60% missingness mechanisms each, was selected to evaluate
 the number of iterations and to determine the optimal hyperparameters
 for tuning. All instances of missingness in this study were generated
-using the ampute function in the MICE package.
+using the ampute function in the `mice` package.
 
 # Imputation models used in simulation study
 
-We conducted a comparative analysis of the mice-xgb imputation method
+We conducted a comparative analysis of the `mice-xgb` imputation method
 against several state-of-the-art imputation techniques. These methods
-included the default settings of MICE (Predictive Mean Matching),
-tree-based imputation models from MICE namely, mice-RF (Random Forest)
-and mice-CART (Classification and Regression Trees) — and the XGBoost
-implementation from mixgb. All MICE methods were run with the default
-settings of five imputations (m = 5). The default settings for the mixgb
+included the default settings of `mice` (Predictive Mean Matching),
+tree-based imputation models from `mice` namely, `mice-RF` (Random Forest)
+and `mice-CART` (Classification and Regression Trees) — and the XGBoost
+implementation from `mixgb` . All `mice` methods were run with the default
+settings of five imputations (m = 5). The default settings for the `mixgb` 
 algorithm included five imputations (m = 5), one iteration (maxit = 1),
 and a subsampling approach to ensure variability between imputations.
-Both mice and mixgb were run with iteration = 1 and iteration = 5 to
+Both `mice` and `mixgb`  were run with iteration = 1 and iteration = 5 to
 compare the effect of iteration. We also evaluated the impact of
-predictive mean matching of mixgb by running imputation model for all
+predictive mean matching of `mixgb`  by running imputation model for all
 three setting (pmm = NULL, pmm = 1, and pmm = 2) and for two iteration
 settings (maxit = 1, maxit = 5).
 
-The mice-xgb method was also run with the default settings of five
+The `mice-xgb` method was also run with the default settings of five
 imputations (m = 5) using all three implemented match.type settings:
-"predicted", "predicted.observed", and "original.observed". Mice-xgb was
+"predicted", "predicted.observed", and "original.observed". `mice-xgb` was
 first run with default parameters. Additionally, the impact of
 hyperparameter tuning was investigated. To achieve this, we run the
-mice-xgb model with either default parameters or the tuned parameters
+`mice-xgb` model with either default parameters or the tuned parameters
 obtained from the newly implemented xgb_param_calc function in the mice
 package.
 
@@ -671,10 +648,10 @@ hyperparameters.
 "response = all": This option runs the hyperparameter tuning algorithm
 iteratively for all three variables and returns three seperate list of
 optimal hyperparameter values identified for each variable. These tuned
-hyperparameters were then input to the mice-xgb algorithm to evaluate
+hyperparameters were then input to the `mice-xgb` algorithm to evaluate
 their impact on imputation performance.
 
-### Estimand and evaluation metrics
+## Estimand and evaluation metrics
 
 A Regression model $y \sim 3x + z + z^2 + 3xz$ is applied to imputed
 datasets obtained from each imputation method. Estimates are extracted
@@ -697,7 +674,7 @@ Width is defined as $\hat{CI.high}$ - $\hat{CI.low}$. All three
 evaluation metrics were averaged over number of simulations (100) to get
 a single value result.
 
-## Hyperparameter tuning using xgb_param_calc
+# Hyperparameter tuning using `xgb_param_calc()`
 
 A subset of data containing 10 simulated datasets from each of the 20%
 and 60% missing data cohorts was selected. The xgb_param_calc function
@@ -760,7 +737,7 @@ running the imputation model (mice.impute.xgb). The model was then
 further evaluated using a regression model, and evaluation metrics
 including bias, coverage, and width were calculated.
 
-## Results:
+## Results
 
 ### Hyperparameter tuning
 
@@ -797,7 +774,7 @@ reduced bias for the quadratic term $z^2$. Next, we evaluated the width
 of these modesl. Width estimates of G1 and sequential tuning of G2 model
 generally mirrored width of default parameters, while sequential tuning
 of G3 and G1_G3_together showed increased width. In terms of coverage,
-we observed that running mice-xgb model with default parameters
+we observed that running `mice-xgb` model with default parameters
 maintained high coverage across all terms and coverage also remained
 robust in parameter-tuned scenarios, except for slight reduction in
 coverage with G1_G3_together for the $z$ term. These findings underscore
@@ -806,7 +783,7 @@ highlight trade-offs in bias, width, and coverage that researchers
 should consider when selecting tuning strategies.
 
 For dataset cohort with 60% missingness, parameter tuning results were
-highly variable (Fig 2). Mice-xgb with default parameter resulted in
+highly variable (Fig 2). `mice-xgb` with default parameter resulted in
 very small bias for $z$ , $Z^2$ and interaction term $x:z$ and tuning
 parameter either increased the bias or even if there was slight decrease
 in bias observed in sequential tuning of G3 and G4, width of the bias
@@ -814,7 +791,7 @@ estimate increased. However, we observed that width of G1_G2_together
 was either similar (minimal increase) or reduced for $z$, $Z^2$ and
 $x:z$ with similar or improved coverage. Moreover, We observed that all
 parameter tuning groups except G1_G2_together decreased the bias for
-both intercept and $x$ term as compared to running mice-xgb algorithm
+both intercept and $x$ term as compared to running `mice-xgb` algorithm
 with default parameter. Although we observed increase in bias in
 G1_G2_together and all_together, width of both groups was similar or
 slightly reduced as compared to default parameter and other parameter
@@ -822,7 +799,7 @@ tuning groups. All other tuning methods resulted in increased width
 compared to default parameter (Table 2).
 
 The dataset cohort with 60% missing data exhibited substantial
-variability in parameter tuning outcomes (Fig 2). Mice-xgb model with
+variability in parameter tuning outcomes (Fig 2). `mice-xgb` model with
 default parameter demonstrated minimal bias for $z$, $Z^2$, and the
 interaction term $x:z$. Tuning parameters generally increased bias for
 these terms, and even in cases where sequential tuning of G3 and G4
@@ -831,7 +808,7 @@ expanded. In contrast, the G1_G2_together approach either maintained
 similar widths or reduced them for $z$, $Z^2$, and $x:z$, while
 achieving comparable or improved coverage. For other two terms intercept
 and $x$, all parameter tuning groups except G1_G2_together resulted in
-reduced bias compared to the mice-xgb model with default parameters.
+reduced bias compared to the `mice-xgb` model with default parameters.
 Despite observing increased bias with G1_G2_together and all_together
 approaches, the width of both groups remained similar or slightly
 reduced compared to defaults and other tuning methods. Conversely,
@@ -850,11 +827,11 @@ parameter settings across diverse datasets with 60% missing data proves
 challenging due to inherent variations in dataset characteristics and
 complexities.
 
-```{r fig1, fig.cap="Figure 1: Simulation results for hyperparameter tuning - 20% missingness: The simulation included 10 datasets, each comprising 1000 samples. Mice-xgb was executed using default parameters for comparative analysis. Bias is represented on the x-axis, with each parameter tuning group depicted on the y-axis. A vertical line at 0 indicates optimal bias proximity to zero.", echo = FALSE}
+```{r fig1, fig.cap="Figure 1: Simulation results for hyperparameter tuning - 20% missingness: The simulation included 10 datasets, each comprising 1000 samples. `mice-xgb` was executed using default parameters for comparative analysis. Bias is represented on the x-axis, with each parameter tuning group depicted on the y-axis. A vertical line at 0 indicates optimal bias proximity to zero.", echo = FALSE}
 knitr::include_graphics("FigsAndTables/BiasPlotOfDifferentMethods_1.png")
 ```
 
-```{r fig2, fig.cap="Figure 2: Simulation results for hyperparameter tuning - 60% missingness: The simulation included 10 datasets, each comprising 1000 samples. Mice-xgb was executed using default parameters for comparative analysis. Bias is represented on the x-axis, with each parameter tuning group depicted on the y-axis. A vertical line at 0 indicates optimal bias proximity to zero.", echo = FALSE}
+```{r fig2, fig.cap="Figure 2: Simulation results for hyperparameter tuning - 60% missingness: The simulation included 10 datasets, each comprising 1000 samples. `mice-xgb` was executed using default parameters for comparative analysis. Bias is represented on the x-axis, with each parameter tuning group depicted on the y-axis. A vertical line at 0 indicates optimal bias proximity to zero.", echo = FALSE}
 knitr::include_graphics("FigsAndTables/BiasPlotOfDifferentMethods_2.png")
 ```
 
@@ -901,24 +878,24 @@ fewer complete cases comparatively (Fig 3).
 knitr::include_graphics("FigsAndTables/Hyperparameter_tuning_time_1.png")
 ```
 
-## Simulation results
+# Simulation results
 
 In this simulation study, we included all datasets (100 simulated
 datasets, as described in the study design) for each of the 20%, 40%,
 60%, and 80% missingness scenarios. We compared various state-of-the-art
-imputation models, including mice-pmm, mice-CART, and mice-RF, as well
-as a recently developed XGBoost-based imputation algorithm (mixgb) with
-multiple configurations of the mice-xgb algorithm. The mice-xgb
+imputation models, including `mice-PMM`, `mice-CART`, and `mice-RF`, as well
+as a recently developed XGBoost-based imputation algorithm (`mixgb` ) with
+multiple configurations of the `mice-xgb` algorithm. The `mice-xgb`
 algorithm was run with three different parameter configurations, which
 included running the algorithm with default parameters, tuned parameters
 for a randomly selected variable, and tuned parameters for all
 variables. Each configuration was executed with three different match
 types (match.type = predicted, predicted.observed, original.observed).
-Hence, in total 9 different configrations of mice-xgb were evaluated.
-Additionally, we performed all mixgb and mice-xgb imputations with both
+Hence, in total 9 different configrations of `mice-xgb` were evaluated.
+Additionally, we performed all `mixgb`  and `mice-xgb` imputations with both
 single iteration (maxit = 1) and multiple iterations (maxit = 5) to
 evaluate the impact of iterative imputation when using machine learning
-for imputation. For the parameter tuning configurations of mice-xgb, we
+for imputation. For the parameter tuning configurations of `mice-xgb`, we
 employed sequential tuning of the G2 parameters, as this approach
 generally resulted in reduced bias compared to the default parameters,
 particularly for the 20% missing data scenario.
@@ -930,21 +907,21 @@ section.
 
 We first evaluated the performance of various imputation models on
 datasets with 20% missing data. Our results (Fig. 4) indicated that the
-imputation models mice-PMM, mice-CART, mice-RF, mixgb (with pmm 1 and
-2), and the mice-xgb configurations (AllParam_predicted.observed,
+imputation models `mice-PMM`, `mice-CART`, `mice-RF`, `mixgb` (with pmm 1 and
+2), and the `mice-xgb` configurations (AllParam_predicted.observed,
 ParamDefault_predicted.observed) achieved 100% coverage for all terms,
-while mice-xgb with Random_predicted.observed achieved 99% coverage for
-all the terms. Other imputation models, including mixgb (no pmm) and
-mice-xgb (predicted and original.observed for all three parameter
+while `mice-xgb` with Random_predicted.observed achieved 99% coverage for
+all the terms. Other imputation models, including `mixgb` (no pmm) and
+`mice-xgb` (predicted and original.observed for all three parameter
 configurations), showed comparatively lower coverage. Additionally, CART
-and mice-xgb:Random_predicted.observed (coverage: 0.99) exhibited very
+and `mice-xgb`:Random_predicted.observed (coverage: 0.99) exhibited very
 similar and minimal bias for all terms except for the term $Z^2$, where
-mice-PMM demonstrated less bias. Between the two methods, CART had a
+`mice-PMM` demonstrated less bias. Between the two methods, CART had a
 narrower width. The broader width observed in
-mice-xgb:Random_predicted.observed is expected, as it results from the
+`mice-xgb`:Random_predicted.observed is expected, as it results from the
 additional variability introduced by tuning the subsampling parameter
-within the G2 group. Mice-RF displayed slightly more bias than CART and
-Random_predicted.observed but with increased width. Mixgb (with pmm) and
+within the G2 group. `mice-RF` displayed slightly more bias than CART and
+Random_predicted.observed but with increased width. `mixgb` (with pmm) and
 ParamDefault_predicted.observed produced very similar results; although
 these three methods showed slightly more bias compared to CART and RF,
 Random_predicted.observed, they had the narrowest width. These findings
@@ -955,79 +932,79 @@ randomly tuning a single parameter can yield improved imputation results
 
 When the missingness percentage was increased to 40%, significant
 differences in coverage among various imputation methods were observed
-(Fig 5). Mice-RF consistently achieved the highest coverage with a
-perfect score of 1 across all terms evaluated. Similarly, Mice-CART,
-Mice-PMM, and Mice-xgb using the AllParam_predicted.observed
+(Fig 5). `mice-RF` consistently achieved the highest coverage with a
+perfect score of 1 across all terms evaluated. Similarly, `mice-CART`,
+`mice-PMM`, and `mice-xgb` using the `AllParam_predicted.observed`
 configuration also showed excellent coverage, ranging from 0.99 to 1.
-Mice-xgb with Random_predicted.observed and
-ParamDefault_predicted.observed configurations exhibited slightly lower
+`mice-xgb` with `Random_predicted.observed` and
+`ParamDefault_predicted.observed` configurations exhibited slightly lower
 but still strong coverage rates, ranging between 0.96 and 1. In
-contrast, Mixgb-PMM2 demonstrated better coverage (0.95 to 0.99)
+contrast, `Mixgb-PMM2` demonstrated better coverage (0.95 to 0.99)
 compared to Mixgb-PMM1 (0.94 to 1). However, other methods, including
-mixgb without PMM and mice-xgb with match.type set to predicted and
+`mixgb` without PMM and `mice-xgb` with match.type set to predicted and
 original.observed for all parameters configurations, consistently
 resulted in poorer coverage outcomes. Next, we evaluated the bias and
 width of the models that showed more than 95% coverage. Among these
-methods, we observed that mice-CART and
-mice-xgb:ParamDefault_predicted.observed exhibited the least bias in the
+methods, we observed that `mice-CART` and
+`mice-xgb`:ParamDefault_predicted.observed exhibited the least bias in the
 intercept and $x$, both with a coverage of 1. However, for the $z^2$
-term, mice-PMM (coverage: 1) demonstrated very small bias, alongside
-mice-CART (coverage: 0.99) and mice-xgb:ParamDefault_predicted.observed
-(coverage: 0.98). For the $x:z$ term, mice-RF (coverage: 1), mice-CART
+term, `mice-PMM` (coverage: 1) demonstrated very small bias, alongside
+`mice-CART` (coverage: 0.99) and `mice-xgb`:ParamDefault_predicted.observed
+(coverage: 0.98). For the $x:z$ term, `mice-RF` (coverage: 1), `mice-CART`
 (coverage: 0.99), and ParamDefault_predicted.observed (coverage: 0.98)
 exhibited the lowest bias. For the $z$ term,
-Mice-xgb:ParamDefault_predicted.observed (coverage: 0.96) and mice-RF
+`mice-xgb`:`ParamDefault_predicted.observed` (coverage: 0.96) and `mice-RF`
 (coverage: 1) showed very little bias. Although
 AllParam_predicted.observed (coverage: 1) also showed the least bias in
 z term, it had the widest width. In all five terms,
-mice-xgb:ParamDefault_predicted.observed had slightly more bias than
+`mice-xgb`:ParamDefault_predicted.observed had slightly more bias than
 CART/RF, but it consistently exhibited narrower width compared to the
-other top-performing methods. Furthermore, mixgb with pmm always
+other top-performing methods. Furthermore, `mixgb` with pmm always
 produced the narrowest width compared to all methods, but this was often
 accompanied by reduced coverage and increased bias. Overall, we observed
-that mice-xgb:predicted.observed strikes a balance between these two
-strategies, with coverage and width between those of mice-CART/RF and
+that `mice-xgb`:predicted.observed strikes a balance between these two
+strategies, with coverage and width between those of `mice-CART`/RF and
 mixgb-pmm. Moreover, these findings also suggest that it may not always
 be necessary to tune hyperparameters, as default parameters can
 sometimes yield better imputation results (Fig 5).
 
 When the missingness percentage was increased to 60%, we observed
 greater variability in coverage plots among different imputation methods
-(Fig 5). State-of-the-art methods such as mice-PMM, CART, and RF
+(Fig 5). State-of-the-art methods such as `mice-PMM`, CART, and RF
 consistently achieved coverage rates exceeding 95%. Specifically,
-mice-RF showed coverage between 0.98 and 0.99, CART between 0.96 and
-0.99, and mice-PMM between 0.95 and 1. In contrast, mice-xgb with
-ParamDefault_predicted.observed, AllParam_predicted.observed, and
-Random_predicted.observed exhibited coverage ranging from 0.93 to 0.97,
-0.91 to 0.95, and 0.92 to 0.96, respectively. Mixgb demonstrated
+`mice-RF` showed coverage between 0.98 and 0.99, CART between 0.96 and
+0.99, and `mice-PMM` between 0.95 and 1. In contrast, `mice-xgb` with
+`ParamDefault_predicted.observed`, `AllParam_predicted.observed`, and
+`Random_predicted.observed` exhibited coverage ranging from 0.93 to 0.97,
+0.91 to 0.95, and 0.92 to 0.96, respectively. `mixgb` demonstrated
 coverage of 0.84 to 0.91 in pmm-1 configurations and 0.89 to 0.96 in
-pmm-2 configurations. However, other configurations of mice-xgb (with
-match.type set to predicted and original.observed) and mixgb without PMM
+pmm-2 configurations. However, other configurations of `mice-xgb` (with
+match.type set to predicted and `original.observed`) and `mixgb` without PMM
 showed notably lower coverage between 0.41 and 0.75 (Fig 5).
 
 Among the imputation methods achieving more than 95% coverage, we
-observed that out of 75 observations (9 configurations for mice-xgb, 3
+observed that out of 75 observations (9 configurations for `mice-xgb`, 3
 configurations for mixgb-pmm, and 3 configurations for other mice
 methods, totaling 15 configurations multiplied by 5 terms), only 19
-observations met this criterion consistently. Mice-PMM, CART, and RF
+observations met this criterion consistently. `mice-PMM`, CART, and RF
 consistently demonstrated high coverage across all five terms evaluated.
 However, for the $Z^2$ term, mixgb-pmm2,
 ParamDefault_predicted.observed, and AllParam_predicted.observed also
 showed high coverage (\>95%), albeit with higher bias compared to
-CART/RF and wider intervals. Similarly, for the $Z$ term, mice-xgb with
+CART/RF and wider intervals. Similarly, for the $Z$ term, `mice-xgb` with
 Random_predicted.observed achieved high coverage, yet exhibited bias
 levels between those of CART and RF, alongside broader intervals (Fig
 6).
 
 When the missingness was increased to 80%, we observed a decline in
 coverage across all methods. However, CART (0.97 - 0.99), RF (0.92 -
-0.99), and mice-PMM (0.89 - 0.99) still exhibited the highest coverage
-compared to XGBoost models (Fig 7). Notably, mice-xgb with match.type =
+0.99), and `mice-PMM` (0.89 - 0.99) still exhibited the highest coverage
+compared to XGBoost models (Fig 7). Notably, `mice-xgb` with match.type =
 "predicted.observed" consistently showed better coverage than other
 match types, with coverage ranging between 0.68 and 0.94 for the 80%
-missingness scenarios. Mixgb models with PMM showed coverage of 0.62 to
-0.87 for PMM2 and 0.53 to 0.74 for PMM1. In contrast, mixgb without PMM
-and mice-xgb with match.type = "predicted" and original.observed
+missingness scenarios. `mixgb` models with PMM showed coverage of 0.62 to
+0.87 for PMM2 and 0.53 to 0.74 for PMM1. In contrast, `mixgb` without PMM
+and `mice-xgb` with match.type = "predicted" and original.observed
 displayed even lower coverage rates. Overall, the simulation results
 indicated superior performance of existing tree-based imputation methods
 compared to the XGBoost algorithm with default settings. However, the
@@ -1091,22 +1068,22 @@ Predicted, predicted.observed, and original.observed represent different
 match.type configurations used for integrating prediction and
 observation data*
 
-### Computational time required for imputation
+## Computational time required for imputation
 
 We investigated the computational time required for various imputation
 methods. The future package in R was used to enable multi-threading, and
 all analyses were conducted utilizing six cores of the computer. For
-mice-xgb methods, the time taken for parameter tuning was included in
+`mice-xgb` methods, the time taken for parameter tuning was included in
 the total imputation time before plotting. The results, presented in
-Figure 8 and Table 3, indicate that among the existing mice methods,
-mice-PMM (20% missingness: 0.10 seconds) required the least time, while
-mice-RF (20% missingness: 1.007 seconds) required the most time.
+Figure 8 and Table 3, indicate that among the existing `mice` methods,
+`mice-PMM` (20% missingness: 0.10 seconds) required the least time, while
+`mice-RF` (20% missingness: 1.007 seconds) required the most time.
 However, the difference in imputation time between these methods was
 minimal. Implementations using XGBoost with default parameters in both
-mice-xgb and mixgb took longer than existing tree-based methods.
-Interestingly, mice-xgb with default settings (20% missingness: 1.87 -
-2.29 seconds) was faster compared to mixgb (20% missingness: 2.73 - 3.62
-seconds), likely due to subsampling used in mixgb (Fig 8; Table 3).
+`mice-xgb` and `mixgb` took longer than existing tree-based methods.
+Interestingly, `mice-xgb` with default settings (20% missingness: 1.87 -
+2.29 seconds) was faster compared to `mixgb` (20% missingness: 2.73 - 3.62
+seconds), likely due to subsampling used in `mixgb` (Fig 8; Table 3).
 
 Parameter tuning significantly increased computational time relative to
 all other imputation strategies. Tuning a single parameter was less
@@ -1139,7 +1116,7 @@ ft
 
 ```
 
-## Discussion
+# Discussion
 
 Traditional methods for imputing missing data often encounter challenges
 when the variables demonstrate non-linear relationships. To address this
@@ -1152,28 +1129,28 @@ leveraged XGBoost for imputation purposes and developed the mixgb
 package for this specific application. In our study, we integrated
 XGBoost into the iterative framework of Multiple Imputation by Chained
 Equations (MICE). Similar to mixgb, we integrated three distinct
-matching strategies with XGBoost predictions. Importantly, mice-xgb
+matching strategies with XGBoost predictions. Importantly, `mice-xgb`
 offers extensive parameter tuning capabilities, allowing customization
 for various datasets and modeling objectives.
 
 Our comparative simulation analysis revealed that among the three
-matching strategies proposed, mice-xgb performed best with the
+matching strategies proposed, `mice-xgb` performed best with the
 "predicted.observed" match.type Conversely, the other two strategies
 exhibited markedly poorer performance, necessitating further
 investigation into their potential use under variety of different
-conditions. Specifically, simulation results indicated that mice-xgb
+conditions. Specifically, simulation results indicated that `mice-xgb`
 with "predicted.observed" strategy achieved comparable results to CART
-and RF. Under default parameter settings, mice-xgb showed narrower
+and RF. Under default parameter settings, `mice-xgb` showed narrower
 confidence intervals compared to CART/RF with same or marginal decrease
-in coverage (1-2%). Our study positioned mice-xgb: predicted.observed
+in coverage (1-2%). Our study positioned `mice-xgb`: predicted.observed
 performance between CART/RF and mixgb-pmm, with CART/RF demonstrating
 the widest confidence intervals, minimal bias, and high coverage.
 Transitioning to mixgb, we observed a slight increase in bias alongside
 reduced coverage. However, as missing data proportions increased, both
-mice-xgb and mixgb exhibited significantly biased estimates, whereas
+`mice-xgb` and `mixgb` exhibited significantly biased estimates, whereas
 CART/RF continued to perform better, even with 80% missing data.
 
-Our exploration of parameter-tuned configurations for mice-xgb
+Our exploration of parameter-tuned configurations for `mice-xgb`
 highlighted poor performance of the model. However, parameter tuning is
 a complex and it was not possible to evaluate hyperparameters for each
 of the 100 simulated datasets with varying levels of missingness. Future
@@ -1184,34 +1161,34 @@ We observed that parameter-tuned XGBoost models displayed wider
 intervals compared to other models and mixgb. This increased variability
 can be attributed to three main factors: variations in initial
 imputation, subsampling parameters, and donor-based selection. In
-contrast, mixgb use consistent initial imputations across datasets and
-variability in mixgb originate from subsampling and donor-based
+contrast, `mixgb` use consistent initial imputations across datasets and
+variability in `mixgb` originate from subsampling and donor-based
 selection, which resulted in narrower width and less coverage. Future
-research could investigate the performance of mice-xgb by excluding
+research could investigate the performance of `mice-xgb` by excluding
 subsampling parameters from the list of tunable parameters. It is
 important to clarify that our study did not emphasize the importance of
 any specific set of parameters but rather aimed to demonstrate the
-application of parameter tuning features in mice-xgb imputation.
+application of parameter tuning features in `mice-xgb` imputation.
 Furthermore, tuning parameters for each variable in the dataset
 (Allparam) is a computationally intensive task. Moving forward,
 exploring multi-task parameter tuning methods could offer a promising
 avenue for future investigations.
 
-Although, mice-xgb parameter tuned configurations also showed poor
+Although, `mice-xgb` parameter tuned configurations also showed poor
 performance in our study design, parameter tuning is a extensive process
 and need to be optimized for each dataset which was not possible for 100
 simulated datasets with varying percentages of missingness. It will be
 better to evaluate importance of each parameters for increased
 missingness scenario and specifically tune those parameter. Moreover, we
 have exployed mean absolute percentage error as a loss function in
-XGBoost algorit that is being minimized in mice-xgb. For future studies,
+XGBoost algorit that is being minimized in `mice-xgb`. For future studies,
 it will be a good idea to evalue other loss functions more adaptive to
 missing data problems. Furthermore, our approach utilized mean absolute
-percentage error as a loss function minimized in mice-xgb. For future
+percentage error as a loss function minimized in `mice-xgb`. For future
 investigations, exploring alternative loss functions tailored to missing
 data challenges could provide valuable insights.
 
-In summary, mice-xgb represents a promising approach for missing data
+In summary, `mice-xgb` represents a promising approach for missing data
 imputation, particularly with the predicted.observed strategy, showing
 competitive performance relative to established methods like CART and
 RF. However, further exploration is warranted to optimize its
