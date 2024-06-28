@@ -1,11 +1,23 @@
 ---
 title: "The XGBoost Paradigm for Missing Data: Is It Worth the Hype"
-author: "Your Name"
-date: "2024-06-24"
-output:
-  html_document:
-    fig_caption: yes
-bibliography: /Users/Shehw001/Documents/GitHub/Mice_xgboost_writeup/XGBoost_mice.bib
+date: 2024-06-28
+author:
+  - name: Huma Shehwana
+  - name: Gerko Vink
+    orcid: 0000-0001-9767-1924
+    email: g.vink@uu.nl
+    affiliations:
+      - name: Utrecht University
+        department: Department of Methods and Statistics
+abstract: > 
+  The characteristic theme of the works of Stone is 
+  the bridge between culture and society. ...
+keywords:
+  - XGboost
+  - Multiple Imputation
+  - mice
+license: "CC BY"
+bibliography: bibliography.bib
 editor_options: 
   markdown: 
     wrap: 72
