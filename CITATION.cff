@@ -9,4 +9,5 @@ authors:
 title: "The XGBoost Paradigm for Missing Data: Is It Worth the Hype?"
 version: v0.1
 date-released: 2024-06-28
+doi: 10.5281/zenodo.12586629
 url: "https://github.com/gerkovink/xgbpaper"
