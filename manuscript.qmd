@@ -1,5 +1,5 @@
 ---
-title: "The XGBoost Paradigm for Missing Data: Is It Worth the Hype"
+title: "The XGBoost Paradigm for Missing Data: Is It Worth the Hype?"
 date: 2024-06-28
 author:
   - name: Huma Shehwana
